@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas Trader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --paper:#EEF1F4; --card:#FFFFFF; --ink:#1B2430; --soft:#5B6676; --line:#D5DBE3;
+  --atlas:#2747D6; --bench:#8A94A3; --gain:#1F7A4D; --loss:#B3362B; --guard:#B57A0C;
+  --gain-bg:#E3F1EA; --loss-bg:#F7E4E2; --guard-bg:#F7EEDB; --atlas-bg:#E4E9FB;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141A22; --card:#1C2430; --ink:#E7ECF2; --soft:#9AA6B5; --line:#2C3644;
+    --atlas:#7B93FF; --bench:#6D7888; --gain:#4CC08A; --loss:#F07A6E; --guard:#E2B04A;
+    --gain-bg:#173327; --loss-bg:#3A1F1D; --guard-bg:#3A2F17; --atlas-bg:#222D52;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141A22; --card:#1C2430; --ink:#E7ECF2; --soft:#9AA6B5; --line:#2C3644;
+  --atlas:#7B93FF; --bench:#6D7888; --gain:#4CC08A; --loss:#F07A6E; --guard:#E2B04A;
+  --gain-bg:#173327; --loss-bg:#3A1F1D; --guard-bg:#3A2F17; --atlas-bg:#222D52;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.5 "Instrument Sans",system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+main{max-width:720px;margin:0 auto;padding:20px 16px 64px}
+h1,h2,.num{font-family:"Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.01em}
+h2{font-size:1.15rem;font-weight:700;margin:40px 0 12px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:.9rem;color:var(--soft)}
+.brand{font-family:"Bricolage Grotesque";font-weight:700;color:var(--ink);font-size:1.05rem}
+.mode{border-radius:999px;padding:3px 10px;font-weight:600;font-size:.8rem;background:var(--atlas-bg);color:var(--atlas)}
+.mode.live{background:var(--loss-bg);color:var(--loss)}
+.verdict{font-size:clamp(1.9rem,7vw,2.8rem);line-height:1.08;font-weight:700;margin:28px 0 6px}
+.verdict .ahead{color:var(--gain)} .verdict .behind{color:var(--loss)}
+.sub{color:var(--soft);margin:0 0 20px;max-width:60ch}
+.chartbox{background:var(--card);border-radius:14px;padding:14px 10px 6px;border:1px solid var(--line)}
+.legend{display:flex;gap:18px;font-size:.85rem;color:var(--soft);padding:0 6px 8px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+canvas{width:100%!important;height:230px!important}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.stat{padding:12px 4px 0}
+.stat{min-width:0}
+.stat span.num{font-size:1.3rem;font-weight:700;display:block;color:var(--ink)}
+.stat span.num.g{color:var(--gain)} .stat span.num.l{color:var(--loss)}
+.stat span.lab{font-size:.8rem;color:var(--soft);display:block;line-height:1.3}
+.alert{border-radius:12px;padding:14px 16px;margin-top:20px;background:var(--guard-bg);color:var(--ink);border-left:4px solid var(--guard)}
+.alert.halt{background:var(--loss-bg);border-color:var(--loss)}
+/* Rotaia del guardiano */
+.pos{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.pos-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.pos-name{font-weight:600}
+.pnl{font-family:"Bricolage Grotesque";font-weight:700;font-size:1.3rem}
+.rail{position:relative;height:50px;margin:18px 0 0}
+.rail .track{position:absolute;top:30px;left:0;right:0;height:8px;border-radius:4px;
+  background:linear-gradient(90deg,var(--loss-bg),var(--paper) 50%,var(--gain-bg))}
+.tick{position:absolute;top:26px;width:2px;height:16px;margin-left:-1px;border-radius:1px}
+.tick.stop{background:var(--loss)} .tick.entry{background:var(--soft)} .tick.tp{background:var(--gain)}
+.dot{position:absolute;top:25px;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:var(--atlas);border:3px solid var(--card)}
+.now{position:absolute;top:0;transform:translateX(-50%);font-weight:600;color:var(--atlas);font-size:.9rem;white-space:nowrap}
+.rail-legend{display:flex;justify-content:space-between;gap:8px;font-size:.78rem;color:var(--soft);margin:8px 0 14px}
+.rail-legend .s{color:var(--loss)} .rail-legend .t{color:var(--gain);text-align:right}
+.rail-legend .e{text-align:center}
+.pos-meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.85rem;color:var(--soft)}
+.empty{color:var(--soft);background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:18px}
+/* Diario */
+.entry{border-top:1px solid var(--line);padding:14px 0}
+.entry:first-child{border-top:0}
+.e-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tag{font-size:.75rem;font-weight:600;border-radius:6px;padding:2px 8px}
+.tag.BUY{background:var(--gain-bg);color:var(--gain)} .tag.SELL{background:var(--loss-bg);color:var(--loss)}
+.tag.HOLD{background:var(--atlas-bg);color:var(--atlas)}
+.e-date{color:var(--soft);font-size:.85rem}
+.e-conf{margin-left:auto;font-size:.8rem;color:var(--soft)}
+.e-text{margin:6px 0 0}
+.e-out{font-size:.85rem;color:var(--soft);margin-top:4px}
+.e-out.blocked{color:var(--guard)}
+details summary{cursor:pointer;color:var(--atlas);font-size:.85rem;margin-top:4px}
+details p{font-size:.9rem;color:var(--soft);margin:6px 0 0}
+.list{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 16px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{text-align:left;font-weight:500;color:var(--soft);padding:10px 6px;border-bottom:1px solid var(--line)}
+td{padding:10px 6px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.g{color:var(--gain)} .l{color:var(--loss)}
+.scroll{overflow-x:auto}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;font-size:.9rem}
+.rules div{border-top:1px solid var(--line);padding-top:8px}
+.rules span{display:block;color:var(--soft);font-size:.8rem}
+footer{margin-top:40px;font-size:.82rem;color:var(--soft)}
+button.theme{background:none;border:1px solid var(--line);color:var(--soft);border-radius:8px;padding:3px 9px;font:inherit;cursor:pointer}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--atlas);outline-offset:2px}
+.trade{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.trade:first-child{border-top:0}
+.trade small{display:block;color:var(--soft);font-size:.8rem}
+.trade .amt{text-align:right;white-space:nowrap}
+.more{margin:4px 0 10px}
+.tm{padding:14px 0;border-top:1px solid var(--line)}
+.tm:first-child{border-top:0}
+.tm-head{display:flex;justify-content:space-between;gap:12px;font-weight:600;font-size:.95rem}
+.tm-head span:last-child{font-size:.82rem}
+.bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:10px 0 8px;background:var(--line)}
+.bar i{display:block;height:100%}
+.bar .bt{background:var(--gain)} .bar .bn{background:var(--bench);opacity:.45} .bar .bs{background:var(--loss)}
+.tm-meta{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.8rem;color:var(--soft)}
+.e-tm{font-size:.8rem;color:var(--soft);margin-top:4px}
+@media (max-width:420px){.stat span.num{font-size:1.1rem}.rules{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main id="app"><p class="sub">Carico i dati di Atlas…</p></main>
+<script>
+const $ = s => document.querySelector(s);
+const eur = v => v == null ? "—" : v.toLocaleString("it-IT",{style:"currency",currency:"EUR"});
+const pct = v => v == null ? "—" : (v>0?"+":"") + v.toLocaleString("it-IT",{maximumFractionDigits:2}) + "%";
+const dt = s => new Date(s).toLocaleString("it-IT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const day = s => new Date(s).toLocaleDateString("it-IT",{day:"numeric",month:"short"});
+const esc = s => String(s ?? "").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const REASONS = {STOP_LOSS:"Stop loss",TAKE_PROFIT:"Obiettivo raggiunto",MAX_HOLDING:"Tempo massimo",
+  DECISIONE_CLAUDE:"Decisione di Claude",BLOCCO:"Freno di emergenza"};
+const ACTIONS = {BUY:"Compra",SELL:"Vendi",HOLD:"Resta fermo"};
+
+function theme(){
+  const r=document.documentElement, dark=r.dataset.theme ? r.dataset.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark"; try{localStorage.setItem("atlas-theme",r.dataset.theme)}catch(e){}
+  render(window.__d);
+}
+try{const t=localStorage.getItem("atlas-theme"); if(t) document.documentElement.dataset.theme=t}catch(e){}
+
+function verdict(d){
+  if(d.benchmark_return_pct == null || d.equity_history.length < 2)
+    return {h:`Atlas parte con ${eur(d.budget)}.`, s:"Il confronto con l'indice comincia dal prossimo giorno di borsa."};
+  const gap = d.return_pct - d.benchmark_return_pct;
+  const g = Math.abs(gap).toLocaleString("it-IT",{maximumFractionDigits:1});
+  if(Math.abs(gap) < 0.1) return {h:"Atlas va pari con l'indice.", s:"Per ora il bot non aggiunge né toglie valore rispetto a comprare e tenere l'MSCI World."};
+  return gap > 0
+    ? {h:`<span class="ahead">Atlas è avanti di ${g} punti</span> sull'indice.`, s:`Rendimento ${pct(d.return_pct)} contro ${pct(d.benchmark_return_pct)} di chi ha comprato l'MSCI World e lo ha tenuto.`}
+    : {h:`<span class="behind">Atlas è dietro di ${g} punti</span> rispetto all'indice.`, s:`Rendimento ${pct(d.return_pct)} contro ${pct(d.benchmark_return_pct)}. Comprare e tenere l'MSCI World avrebbe reso di più.`};
+}
+
+function rail(p){
+  const lo = Math.min(p.stop, p.last_price)*0.995, hi = Math.max(p.take_profit, p.last_price)*1.005;
+  const f = v => (v-lo)/(hi-lo)*100, x = v => f(v).toFixed(2)+"%";
+  const lab = Math.min(88, Math.max(12, f(p.last_price)));
+  const n = v => v.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return `<div class="rail" role="img" aria-label="Prezzo ${n(p.last_price)}: stop ${n(p.stop)}, obiettivo ${n(p.take_profit)}">
+    <div class="track"></div>
+    <div class="tick stop" style="left:${x(p.stop)}"></div>
+    <div class="tick entry" style="left:${x(p.entry_price)}"></div>
+    <div class="tick tp" style="left:${x(p.take_profit)}"></div>
+    <div class="dot" style="left:${x(p.last_price)}"></div>
+    <div class="now" style="left:${lab}%">Ora ${n(p.last_price)}</div>
+  </div>
+  <div class="rail-legend"><span class="s">Stop ${n(p.stop)}</span><span class="e">Ingresso ${n(p.entry_price)}</span><span class="t">Obiettivo ${n(p.take_profit)}</span></div>`;
+}
+
+function diary(e){ const bl=e.outcome.startsWith("bloccata"); return `
+    <div class="entry">
+      <div class="e-head"><span class="tag ${e.action}">${ACTIONS[e.action]}</span><span class="e-date">${dt(e.time)}</span>
+      <span class="e-conf">fiducia ${Math.round(e.confidence*100)}%</span></div>
+      <p class="e-text">${esc(e.thesis)}</p>
+      <div class="e-out ${bl?"blocked":""}">${bl ? "Il guardiano ha bloccato l'ordine: " + esc(e.outcome.slice(10)) : esc(e.outcome)}</div>
+      ${e.tm&&e.tm.simulations?`<div class="e-tm">Macchina del tempo: obiettivo ${e.tm.p_target}%, stop ${e.tm.p_stop}%, rendimento atteso ${pct(e.tm.exp_return_pct)}</div>`:""}
+      ${(e.risks||e.news)?`<details><summary>Rischi e notizie</summary>${e.risks?`<p><strong>Rischi.</strong> ${esc(e.risks)}</p>`:""}${e.news?`<p><strong>Notizie.</strong> ${esc(e.news)}</p>`:""}</details>`:""}
+    </div>`;}
+
+function render(d){
+  if(!d) return;
+  const v = verdict(d), p = d.position;
+  const toHalt = d.equity - d.halt_level;
+  $("#app").innerHTML = `
+  <div class="top"><span class="brand">Atlas</span>
+    <span><span class="mode ${d.mode==="LIVE"?"live":""}">${esc(d.mode.toLowerCase())}</span>
+    <button class="theme" onclick="theme()" aria-label="Cambia tema">◐</button></span></div>
+  <h1 class="verdict">${v.h}</h1>
+  <p class="sub">${v.s}</p>
+  <div class="chartbox">
+    <div class="legend"><span><i style="background:var(--atlas)"></i>Atlas</span><span><i style="background:var(--bench)"></i>MSCI World, comprato e tenuto</span></div>
+    <canvas id="chart" aria-label="Andamento del capitale di Atlas e dell'indice"></canvas>
+  </div>
+  <div class="stats">
+    <div class="stat"><span class="num">${eur(d.equity)}</span><span class="lab">Capitale</span></div>
+    <div class="stat"><span class="num ${d.realized_pnl>=0?"g":"l"}">${eur(d.realized_pnl)}</span><span class="lab">Operazioni chiuse${d.win_rate!=null?`, ${d.win_rate}% in guadagno`:""}</span></div>
+    <div class="stat"><span class="num">${eur(toHalt)}</span><span class="lab">Margine dal freno di emergenza</span></div>
+  </div>
+  ${d.halted ? `<div class="alert halt"><strong>Freno di emergenza attivo.</strong> Il capitale è sceso sotto ${eur(d.halt_level)}: Atlas non apre nuove posizioni finché non lo riattivi tu.</div>`
+    : toHalt < d.budget*0.05 ? `<div class="alert">Il capitale è vicino al freno di emergenza (${eur(d.halt_level)}).</div>` : ""}
+
+  <h2>Posizione aperta</h2>
+  ${p ? `<div class="pos">
+      <div class="pos-head"><span class="pos-name">${esc(p.name)}</span><span class="pnl ${p.pnl>=0?"g":"l"}">${p.pnl>=0?"+":""}${eur(p.pnl)}</span></div>
+      ${rail(p)}
+      <div class="pos-meta"><span>${p.quantity.toLocaleString("it-IT")} quote a ${eur(p.entry_price)}</span><span>Aperta il ${day(p.opened_at)}</span>
+      <span>Stop ${p.stop_order && p.stop_order.id ? "piazzato sul broker" : "gestito dal bot"}</span></div>
+    </div>`
+    : `<div class="empty">Nessuna posizione. Atlas è in liquidità e aspetta un'occasione che passi i controlli del guardiano.</div>`}
+
+  <h2>Diario di Claude</h2>
+  <div class="list">${d.decisions.length ? d.decisions.slice(0,5).map(diary).join("") + (d.decisions.length>5 ? `<details class="more"><summary>Mostra le altre ${d.decisions.length-5} analisi</summary>${d.decisions.slice(5).map(diary).join("")}</details>` : "") : `<p class="sub" style="margin:14px 0">La prima analisi arriva al prossimo giorno di borsa.</p>`}</div>
+
+  <h2>Operazioni</h2>
+  ${d.trades.length ? `<div class="list">${d.trades.slice(0,12).map(t=>`<div class="trade">
+    <div>${t.side==="BUY"?"Acquisto":"Vendita"} ${esc(t.name)}<small>${day(t.time)}, ${REASONS[t.reason]||esc(t.reason)}</small></div>
+    <div class="amt">${t.price.toFixed(2)}€<small class="${t.pnl>0?"g":t.pnl<0?"l":""}">${t.side==="SELL"?(t.pnl>0?"+":"")+eur(t.pnl):"acquisto"}</small></div></div>`).join("")}</div>` : `<div class="empty">Ancora nessuna operazione.</div>`}
+
+  <h2>Segnali di oggi</h2>
+  <div class="list scroll"><table>
+    <tr><th>ETF</th><th class="r">Prezzo</th><th class="r">Trend</th><th class="r">RSI</th><th class="r">20 giorni</th></tr>
+    ${d.signals.map(s=>`<tr><td>${esc(s.name)}</td><td class="r">${s.price.toFixed(2)}</td>
+      <td class="r ${s.price>s.sma50?"g":"l"}">${s.price>s.sma50?"Sopra media":"Sotto media"}</td>
+      <td class="r">${s.rsi14.toFixed(0)}</td><td class="r ${s.mom_20d_pct>=0?"g":"l"}">${pct(s.mom_20d_pct)}</td></tr>`).join("")}
+  </table></div>
+
+  <h2>Macchina del tempo</h2>
+  <p class="sub">Per ogni ETF, ${(d.signals.find(s=>s.tm&&s.tm.simulations)||{tm:{simulations:5000}}).tm.simulations.toLocaleString("it-IT")} futuri simulati con le stesse regole di stop e obiettivo. Il guardiano compra solo se il rendimento atteso è almeno ${((d.tm_rules||{}).min_expected_return_pct??0.5).toLocaleString("it-IT")}% e lo stop scatta al massimo nel ${(d.tm_rules||{}).max_stop_probability_pct??45}% dei casi.</p>
+  <div class="list">${d.signals.filter(s=>s.tm&&s.tm.simulations).map(s=>{const t=s.tm,h=t.history||{},tr=d.tm_rules||{min_expected_return_pct:0.5,max_stop_probability_pct:45},bad=t.exp_return_pct<tr.min_expected_return_pct||t.p_stop>tr.max_stop_probability_pct;return `
+    <div class="tm">
+      <div class="tm-head"><span>${esc(s.name)}</span><span class="${bad?"l":"g"}">${bad?"Sfavorevole":"Favorevole"}</span></div>
+      <div class="bar" role="img" aria-label="Obiettivo ${t.p_target}%, nessuno dei due ${t.p_neither}%, stop ${t.p_stop}%">
+        <i class="bt" style="width:${t.p_target}%"></i><i class="bn" style="width:${t.p_neither}%"></i><i class="bs" style="width:${t.p_stop}%"></i></div>
+      <div class="tm-meta"><span class="g">Obiettivo ${t.p_target.toLocaleString("it-IT")}%</span><span>Scadenza ${t.p_neither.toLocaleString("it-IT")}%</span><span class="l">Stop ${t.p_stop.toLocaleString("it-IT")}%</span></div>
+      <div class="tm-meta"><span>Rendimento atteso ${pct(t.exp_return_pct)}</span><span>5% peggiore ${pct(t.worst_5pct)}</span>
+      ${h.cases>=5?`<span>Storico: ${h.cases} casi simili, media ${pct(h.avg_return_pct)}</span>`:""}</div>
+    </div>`}).join("") || `<p class="sub" style="margin:14px 0">I risultati compaiono dopo il primo giro.</p>`}</div>
+
+  <h2>Regole del guardiano</h2>
+  <p class="sub">Claude propone, queste regole decidono. Sono scritte nel codice e Claude non può cambiarle.</p>
+  <div class="rules">
+    <div>Una posizione alla volta<span>Massimo ${d.rules.max_buys_per_day} acquisto al giorno</span></div>
+    <div>Stop loss ${Math.round(d.rules.stop_loss_pct*100)}%<span>Poi segue il prezzo a −${Math.round(d.rules.trailing_pct*100)}% dal massimo</span></div>
+    <div>Obiettivo +${Math.round(d.rules.take_profit_pct*100)}%<span>Uscita dopo ${d.rules.max_holding_days} giorni al massimo</span></div>
+    <div>Solo in trend<span>Prezzo sopra la media a 50 giorni, RSI sotto ${d.rules.max_rsi_entry}</span></div>
+    <div>Fiducia minima ${Math.round(d.rules.min_confidence*100)}%<span>Sotto questa soglia l'acquisto viene scartato</span></div>
+    <div>Freno a −${Math.round(d.rules.max_drawdown_pct*100)}%<span>Sotto ${eur(d.halt_level)} il bot smette di comprare</span></div>
+  </div>
+  <footer>Aggiornato ${dt(d.updated)} · Borsa ${d.market_open?"aperta":"chiusa"} · Attivo dal ${day(d.started_at)} · Costo analisi Claude finora ${d.costs_usd.toLocaleString("it-IT",{style:"currency",currency:"USD"})}<br>
+  Strumento sperimentale. Non è consulenza finanziaria e i risultati passati non garantiscono quelli futuri.</footer>`;
+  drawChart(d);
+}
+
+function drawChart(d){
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const h = d.equity_history;
+  if(window.__c) window.__c.destroy();
+  window.__c = new Chart($("#chart"), {type:"line",
+    data:{labels:h.map(x=>day(x.date)), datasets:[
+      {data:h.map(x=>x.benchmark), borderColor:css("--bench"), borderWidth:1.5, borderDash:[4,4], pointRadius:0, tension:.25},
+      {data:h.map(x=>x.equity), borderColor:css("--atlas"), borderWidth:2.5, pointRadius:0, tension:.25,
+       fill:{target:{value:d.budget}}, backgroundColor:css("--atlas-bg")+"99"}]},
+    options:{responsive:true, maintainAspectRatio:false, animation:false, interaction:{mode:"index",intersect:false},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>(c.datasetIndex?"Atlas ":"Indice ")+eur(c.parsed.y)}}},
+      scales:{x:{grid:{display:false}, ticks:{color:css("--soft"), maxTicksLimit:5, maxRotation:0}},
+        y:{grid:{color:css("--line")}, border:{display:false}, ticks:{color:css("--soft"), callback:v=>v+"€", maxTicksLimit:5}}}}});
+}
+
+(window.ATLAS_DATA ? Promise.resolve(window.ATLAS_DATA)
+  : fetch("data/dashboard.json?"+Date.now()).then(r=>{if(!r.ok) throw 0; return r.json()}))
+  .then(d=>{window.__d=d; render(d)})
+  .catch(()=>{$("#app").innerHTML=`<p class="brand">Atlas</p><h1 class="verdict">In attesa del primo giro.</h1>
+    <p class="sub">I dati compaiono qui dopo la prima esecuzione automatica su GitHub. Per avviarla subito: Actions, Atlas, Run workflow.</p>`});
+</script>
+</body>
+</html>

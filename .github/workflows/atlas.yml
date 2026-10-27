@@ -1,0 +1,56 @@
+name: Atlas
+
+on:
+  schedule:
+    # Lun-Ven, tre giri durante la borsa di Francoforte (orari UTC).
+    # Inverno: 9:40, 12:40, 15:40 a Milano. Estate: 10:40, 13:40, 16:40.
+    - cron: "40 8 * * 1-5"
+    - cron: "40 11 * * 1-5"
+    - cron: "40 14 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atlas
+  cancel-in-progress: false
+
+jobs:
+  run:
+    # Pausa d'emergenza: variabile ATLAS_PAUSED = 1 nelle impostazioni del repository
+    if: vars.ATLAS_PAUSED != '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installa dipendenze
+        run: pip install -r requirements.txt
+
+      - name: Giro di Atlas
+        env:
+          T212_API_KEY: ${{ secrets.T212_API_KEY }}
+          T212_API_SECRET: ${{ secrets.T212_API_SECRET }}
+          T212_ENV: ${{ vars.T212_ENV || 'demo' }}
+          LIVE_CONFIRM: ${{ vars.LIVE_CONFIRM }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -m bot.run
+
+      - name: Salva stato e dashboard
+        if: always()
+        run: |
+          git config user.name "atlas-bot"
+          git config user.email "atlas-bot@users.noreply.github.com"
+          git add state docs/data
+          if ! git diff --cached --quiet; then
+            git commit -m "Atlas: giro del $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+            git push
+          fi

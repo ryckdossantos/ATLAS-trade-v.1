@@ -1,0 +1,61 @@
+{
+  "budget_eur": 100,
+  "universe": [
+    {
+      "isin": "IE00B4L5Y983",
+      "yahoo": "EUNL.DE",
+      "name": "iShares Core MSCI World"
+    },
+    {
+      "isin": "IE00B5BMR087",
+      "yahoo": "SXR8.DE",
+      "name": "iShares Core S&P 500"
+    },
+    {
+      "isin": "IE00B53SZB19",
+      "yahoo": "SXRV.DE",
+      "name": "iShares Nasdaq 100"
+    },
+    {
+      "isin": "IE00BKM4GZ66",
+      "yahoo": "IS3N.DE",
+      "name": "iShares Core MSCI EM IMI"
+    },
+    {
+      "isin": "IE00B4ND3602",
+      "yahoo": "PPFB.DE",
+      "name": "iShares Physical Gold"
+    }
+  ],
+  "benchmark_yahoo": "EUNL.DE",
+  "risk": {
+    "max_positions": 1,
+    "invest_fraction": 0.95,
+    "min_order_eur": 10,
+    "stop_loss_pct": 0.05,
+    "trailing_pct": 0.06,
+    "take_profit_pct": 0.12,
+    "max_holding_days": 30,
+    "max_drawdown_pct": 0.2,
+    "min_confidence": 0.65,
+    "max_rsi_entry": 70,
+    "cooldown_days": 3,
+    "max_buys_per_day": 1
+  },
+  "brain": {
+    "model": "claude-sonnet-5-5",
+    "max_web_searches": 2,
+    "max_tokens": 4000
+  },
+  "market_hours_berlin": {
+    "open": "09:05",
+    "close": "17:25"
+  },
+  "time_machine": {
+    "simulations": 5000,
+    "block_days": 5,
+    "lookback_days": 250,
+    "min_expected_return_pct": 0.5,
+    "max_stop_probability_pct": 45
+  }
+}

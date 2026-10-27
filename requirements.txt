@@ -1,0 +1,5 @@
+anthropic>=0.70
+yfinance>=0.2.50
+pandas>=2.2
+numpy>=1.26
+requests>=2.32
