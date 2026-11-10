@@ -52,7 +52,7 @@
   {
    "date": "2026-11-10",
    "equity": 100.0,
-   "benchmark": 97.71
+   "benchmark": 97.68
   }
  ],
  "cooldowns": {},
@@ -67,6 +67,6 @@
  },
  "costs_usd": 0.0,
  "started_at": "2026-10-28T16:25:38+01:00",
- "last_run": "2026-11-10T17:35:56+01:00",
+ "last_run": "2026-11-10T19:48:22+01:00",
  "mode": "SIMULAZIONE"
 }
